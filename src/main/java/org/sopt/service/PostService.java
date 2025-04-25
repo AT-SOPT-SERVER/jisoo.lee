@@ -1,46 +1,61 @@
 package org.sopt.service;
 
+import org.springframework.stereotype.Service;
 import org.sopt.domain.Post;
-import org.sopt.repository.PostRepository;
+import org.sopt.dto.PostResponseData;
+import org.sopt.exception.PostException;
+import org.sopt.Repository.PostRepository;
 
 import java.util.List;
 
+@Service
 public class PostService {
-    private final PostRepository postRepository = new PostRepository();
-    private int postId = 1;
 
-    //게시글 생성 시 제목이 비어있는지 검사
-    public void createPost(String title) {
-        if (title == null || title.trim().isEmpty()) {
-            throw new IllegalArgumentException("제목은 비어 있을 수 없습니다.");
-        }
+    private final PostRepository postRepository;
 
-        //제목이 30자를 초과하는 경우
-        if (title.length() > 30) {
-            throw new IllegalArgumentException("제목은 30자 이하여야 합니다.");
-        }
-
-        Post post = new Post(postId++, title);
-        postRepository.save(post);
+    public PostService(PostRepository postRepository) {
+        this.postRepository = postRepository;
     }
 
+    // 🔹 게시글 생성
+    public PostResponseData createPost(String title) {
+        if (title == null || title.trim().isEmpty()) {
+            throw new PostException("POST_001", "제목은 비어 있을 수 없습니다.");
+        }
+
+        if (title.length() > 30) {
+            throw new PostException("POST_002", "제목은 30자 이하여야 합니다.");
+        }
+
+        Post post = new Post(title);
+        Post savedPost = postRepository.save(post);
+
+        return new PostResponseData(savedPost.getId(), savedPost.getTitle());
+    }
+
+    // 🔹 전체 게시글 조회
     public List<Post> getAllPosts() {
         return postRepository.findAll();
     }
 
-    public Post getPostById(int id) {
-        return postRepository.findPostById(id);
+    // 🔹 특정 게시글 상세 조회
+    public Post getPostById(Long id) {
+        return postRepository.findById(id)
+                .orElseThrow(() -> new PostException("POST_003", "해당 ID의 게시글이 없습니다."));
     }
 
-    public boolean deletePostById(int id) {
-        return postRepository.delete(id);
-    }
+    // 🔹 게시글 수정 (제목 변경)
+    public PostResponseData updatePostTitle(Long id, String newTitle) {
+        Post post = postRepository.findById(id)
+                .orElseThrow(() -> new PostException("POST_004", "해당 게시글이 존재하지 않습니다."));
 
-    //게시글 제목 수정을 위한 서비스 메서드 추가
-    public boolean updatePostTitle(int id, String newTitle) {
-        return postRepository.updateTitle(id, newTitle);
+        if (newTitle == null || newTitle.trim().isEmpty()) {
+            throw new PostException("POST_005", "수정할 제목은 비어 있을 수 없습니다.");
+        }
+
+        post.updateTitle(newTitle); // 이 메서드는 Post.java에 반드시 있어야 함
+        Post updated = postRepository.save(post);
+
+        return new PostResponseData(updated.getId(), updated.getTitle());
     }
 }
-
-
-// 제목 30자 제한 기능 최종 확인용 주석
