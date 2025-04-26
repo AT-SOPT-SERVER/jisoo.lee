@@ -1,38 +1,42 @@
 package org.sopt.controller;
 
-import org.sopt.domain.Post;
+import org.sopt.dto.PostRequest;
 import org.sopt.service.PostService;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.sopt.dto.PostResponse;
+import org.sopt.dto.PostResponseData;
 
-import java.util.List;
-
+@RestController
+@RequestMapping("/post")
 public class PostController {
-    private final PostService postService = new PostService();
+    private final PostService postService;
 
-    // 제목이 비었거나 30자를 초과하면 에러 메시지를 출력하고 저장하지 않음
-    public void createPost(final String title) {
-        postService.createPost(title);
+    public PostController(PostService postService) {
+        this.postService = postService;
     }
 
-
-    public List<Post> getAllPosts() {
-        return postService.getAllPosts();
+    @PostMapping
+    public ResponseEntity<?> createPost(@RequestBody final PostRequest postRequest) {
+        PostResponseData result = postService.createPost(postRequest.title()); // result 받기
+        return ResponseEntity.ok(PostResponse.success(result)); // 실제 응답 전달
     }
 
-    public Post getPostById(int id) {
-        return postService.getPostById(id);
+    @GetMapping("/all")
+    public ResponseEntity<?> getAllPosts() {
+        return ResponseEntity.ok(postService.getAllPosts());
     }
 
-    // 게시글 제목 수정을 위한 컨트롤러 메서드 추가
-    public boolean updatePostTitle(int id, String newTitle) {
-        return postService.updatePostTitle(id, newTitle);
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getPostById(@PathVariable Long id) {
+        return ResponseEntity.ok(PostResponse.success(postService.getPostById(id)));
     }
 
-    public boolean deletePostById(int id) {
-        return postService.deletePostById(id);
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updatePost(@PathVariable Long id, @RequestBody PostRequest request) {
+        PostResponseData result = postService.updatePostTitle(id, request.title());
+        return ResponseEntity.ok(PostResponse.success(result));
     }
 
-    public List<Post> searchPostsByKeyword(String keyword) {
-        return null;
-    }
 
 }
