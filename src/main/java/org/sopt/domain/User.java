@@ -6,23 +6,23 @@ import jakarta.persistence.GenerationType;
 import org.springframework.data.annotation.Id;
 
 @Entity
-public class Post {
-
+public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String title;
+    private String name;
 
-    private String content;
+    protected String email;
 
-    protected Post() {
+    protected User(){
+
 
     }
 
-    public Post(String title, String content){
-        this.title = title;
-        this.content = content;
+    public User(String title, String content){
+        this.name = name;
+        this.email = email;
     }
 
 }
