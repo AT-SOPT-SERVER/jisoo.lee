@@ -1,61 +1,72 @@
 package org.sopt.service;
 
-import org.springframework.stereotype.Service;
 import org.sopt.domain.Post;
+import org.sopt.domain.User;
+import org.sopt.dto.PostRequest;
+import org.sopt.dto.PostResponse;
 import org.sopt.dto.PostResponseData;
-import org.sopt.exception.PostException;
+import org.sopt.global.common.exception.BaseException;
 import org.sopt.Repository.PostRepository;
+import org.sopt.Repository.UserRepository;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class PostService {
 
     private final PostRepository postRepository;
+    private final UserRepository userRepository;
 
-    public PostService(PostRepository postRepository) {
+    public PostService(PostRepository postRepository, UserRepository userRepository) {
         this.postRepository = postRepository;
+        this.userRepository = userRepository;
     }
 
-    // 🔹 게시글 생성
-    public PostResponseData createPost(String title) {
-        if (title == null || title.trim().isEmpty()) {
-            throw new PostException("POST_001", "제목은 비어 있을 수 없습니다.");
-        }
+    public Long createPost(Long userId, PostRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BaseException(HttpStatus.NOT_FOUND, "유저를 찾을 수 없습니다."));
 
-        if (title.length() > 30) {
-            throw new PostException("POST_002", "제목은 30자 이하여야 합니다.");
-        }
-
-        Post post = new Post(title);
-        Post savedPost = postRepository.save(post);
-
-        return new PostResponseData(savedPost.getId(), savedPost.getTitle());
+        Post post = new Post(request.getTitle(), request.getContent(), user);
+        postRepository.save(post);
+        return post.getId();
     }
 
-    // 🔹 전체 게시글 조회
-    public List<Post> getAllPosts() {
-        return postRepository.findAll();
+    // ✅ 전체 조회 (최신순, 제목 + 작성자)
+    public List<PostResponseData> getAllPosts() {
+        return postRepository.findAllByOrderByIdDesc().stream()
+                .map(post -> new PostResponseData(
+                        post.getTitle(),
+                        post.getContent(), // ✅ content도 넣어줌
+                        post.getUser().getName()
+                ))
+                .collect(Collectors.toList());
     }
 
-    // 🔹 특정 게시글 상세 조회
-    public Post getPostById(Long id) {
-        return postRepository.findById(id)
-                .orElseThrow(() -> new PostException("POST_003", "해당 ID의 게시글이 없습니다."));
+    // ✅ 상세 조회 (제목, 내용, 작성자)
+    public PostResponseData getPostById(Long postId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new BaseException(HttpStatus.NOT_FOUND, "게시글을 찾을 수 없습니다."));
+
+        return new PostResponseData(post.getTitle(), post.getContent(), post.getUser().getName());
     }
 
-    // 🔹 게시글 수정 (제목 변경)
-    public PostResponseData updatePostTitle(Long id, String newTitle) {
-        Post post = postRepository.findById(id)
-                .orElseThrow(() -> new PostException("POST_004", "해당 게시글이 존재하지 않습니다."));
+    // ✅ 수정
+    public PostResponse updatePost(Long postId, PostRequest request) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new BaseException(HttpStatus.NOT_FOUND, "게시글을 찾을 수 없습니다."));
 
-        if (newTitle == null || newTitle.trim().isEmpty()) {
-            throw new PostException("POST_005", "수정할 제목은 비어 있을 수 없습니다.");
-        }
+        post.update(request.getTitle(), request.getContent());
+        return PostResponse.success(post.getTitle(), post.getContent(), post.getId());
+    }
 
-        post.updateTitle(newTitle); // 이 메서드는 Post.java에 반드시 있어야 함
-        Post updated = postRepository.save(post);
+    // ✅ 삭제
+    public void deletePost(Long postId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new BaseException(HttpStatus.NOT_FOUND, "게시글을 찾을 수 없습니다."));
 
-        return new PostResponseData(updated.getId(), updated.getTitle());
+        postRepository.delete(post);
     }
 }
