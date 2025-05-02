@@ -1,9 +1,6 @@
 package org.sopt.domain;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import org.springframework.data.annotation.Id;
+import jakarta.persistence.*;
 
 @Entity
 public class Post {
@@ -16,13 +13,36 @@ public class Post {
 
     private String content;
 
-    protected Post() {
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User user;
 
+    public Post() {}
+
+    public Post(String title, String content, User user) {
+        this.title = title;
+        this.content = content;
+        this.user = user;
     }
 
-    public Post(String title, String content){
+    public Long getId() {
+        return id;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public String getContent() {
+        return content;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void update(String title, String content) {
         this.title = title;
         this.content = content;
     }
-
 }

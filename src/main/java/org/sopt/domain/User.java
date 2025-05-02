@@ -1,28 +1,31 @@
 package org.sopt.domain;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import org.springframework.data.annotation.Id;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 public class User {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotBlank(message = "이름은 비어 있을 수 없습니다.")
     private String name;
 
-    protected String email;
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Post> posts = new ArrayList<>();
 
-    protected User(){
+    public User() {}
 
-
-    }
-
-    public User(String title, String content){
+    public User(String name) {
         this.name = name;
-        this.email = email;
     }
 
+    public Long getId() { return id; }
+
+    public String getName() { return name; }
+
+    public List<Post> getPosts() { return posts; }
 }
