@@ -1,24 +1,50 @@
 package org.sopt.domain;
+
+import jakarta.persistence.*;
+
+@Entity
 public class Post {
-    private int id;
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false)
     private String title;
 
-    public Post(int id, String title) {
-        this.id = id;
+    @Column(nullable = false)
+    private String content;
+
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User user;
+
+    public Post() {}
+
+    public Post(String title, String content, User user) {
         this.title = title;
+        this.content = content;
+        this.user = user;
     }
 
-    // 제목을 바꾸는 메서드 추가
-    public void updateTitle(String newTitle) {
-        this.title = newTitle;
-    }
-
-    public int getId() {
-        return this.id;
+    public Long getId() {
+        return id;
     }
 
     public String getTitle() {
-        return this.title;
+        return title;
+    }
+
+    public String getContent() {
+        return content;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void update(String title, String content) {
+        this.title = title;
+        this.content = content;
     }
 }
-

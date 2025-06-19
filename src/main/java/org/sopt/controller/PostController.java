@@ -1,38 +1,62 @@
 package org.sopt.controller;
 
-import org.sopt.domain.Post;
+import jakarta.validation.Valid;
+import org.sopt.dto.PostRequest;
+import org.sopt.dto.PostResponse;
+import org.sopt.dto.PostResponseData;
 import org.sopt.service.PostService;
-
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
+@RestController
+@RequestMapping("/posts")
 public class PostController {
-    private final PostService postService = new PostService();
 
-    // 제목이 비었거나 30자를 초과하면 에러 메시지를 출력하고 저장하지 않음
-    public void createPost(final String title) {
-        postService.createPost(title);
+    private final PostService postService;
+
+    public PostController(PostService postService) {
+        this.postService = postService;
     }
 
-
-    public List<Post> getAllPosts() {
-        return postService.getAllPosts();
+    // ✅ 게시글 생성 (응답 DTO는 서비스에서 생성)
+    @PostMapping
+    public ResponseEntity<PostResponse> createPost(
+            @RequestHeader Long userId,
+            @Valid @RequestBody PostRequest postRequest
+    ) {
+        PostResponse response = postService.createPost(userId, postRequest);
+        return ResponseEntity.status(201).body(response);
     }
 
-    public Post getPostById(int id) {
-        return postService.getPostById(id);
+    // ✅ 전체 조회
+    @GetMapping
+    public ResponseEntity<List<PostResponseData>> getAllPosts() {
+        List<PostResponseData> responses = postService.getAllPosts();
+        return ResponseEntity.ok(responses);
     }
 
-    // 게시글 제목 수정을 위한 컨트롤러 메서드 추가
-    public boolean updatePostTitle(int id, String newTitle) {
-        return postService.updatePostTitle(id, newTitle);
+    // ✅ 상세 조회
+    @GetMapping("/{postId}")
+    public ResponseEntity<PostResponseData> getPostById(@PathVariable Long postId) {
+        PostResponseData response = postService.getPostById(postId);
+        return ResponseEntity.ok(response);
     }
 
-    public boolean deletePostById(int id) {
-        return postService.deletePostById(id);
+    // ✅ 수정
+    @PutMapping("/{postId}")
+    public ResponseEntity<PostResponse> updatePost(
+            @PathVariable Long postId,
+            @RequestBody PostRequest request
+    ) {
+        PostResponse response = postService.updatePost(postId, request);
+        return ResponseEntity.ok(response);
     }
 
-    public List<Post> searchPostsByKeyword(String keyword) {
-        return null;
+    // ✅ 삭제
+    @DeleteMapping("/{postId}")
+    public ResponseEntity<Void> deletePost(@PathVariable Long postId) {
+        postService.deletePost(postId);
+        return ResponseEntity.noContent().build();
     }
-
 }

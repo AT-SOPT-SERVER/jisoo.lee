@@ -1,46 +1,73 @@
 package org.sopt.service;
 
 import org.sopt.domain.Post;
-import org.sopt.repository.PostRepository;
+import org.sopt.domain.User;
+import org.sopt.dto.PostRequest;
+import org.sopt.dto.PostResponse;
+import org.sopt.dto.PostResponseData;
+import org.sopt.Exception.BaseException;
+import org.sopt.Exception.PostErrorCode;
+import org.sopt.Repository.PostRepository;
+import org.sopt.Repository.UserRepository;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
+@Service
 public class PostService {
-    private final PostRepository postRepository = new PostRepository();
-    private int postId = 1;
 
-    //게시글 생성 시 제목이 비어있는지 검사
-    public void createPost(String title) {
-        if (title == null || title.trim().isEmpty()) {
-            throw new IllegalArgumentException("제목은 비어 있을 수 없습니다.");
-        }
+    private final PostRepository postRepository;
+    private final UserRepository userRepository;
 
-        //제목이 30자를 초과하는 경우
-        if (title.length() > 30) {
-            throw new IllegalArgumentException("제목은 30자 이하여야 합니다.");
-        }
+    public PostService(PostRepository postRepository, UserRepository userRepository) {
+        this.postRepository = postRepository;
+        this.userRepository = userRepository;
+    }
 
-        Post post = new Post(postId++, title);
+    public PostResponse createPost(Long userId, PostRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BaseException(PostErrorCode.USER_NOT_FOUND));
+
+        Post post = new Post(request.getTitle(), request.getContent(), user);
         postRepository.save(post);
+
+        return PostResponse.success(post.getTitle(), post.getContent(), post.getId());
     }
 
-    public List<Post> getAllPosts() {
-        return postRepository.findAll();
+    public List<PostResponseData> getAllPosts() {
+        return postRepository.findAllByOrderByIdDesc().stream()
+                .map(post -> new PostResponseData(
+                        post.getTitle(),
+                        post.getContent(),
+                        post.getUser().getName()
+                ))
+                .collect(Collectors.toList());
     }
 
-    public Post getPostById(int id) {
-        return postRepository.findPostById(id);
+    public PostResponseData getPostById(Long postId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new BaseException(PostErrorCode.POST_NOT_FOUND));
+
+        return new PostResponseData(
+                post.getTitle(),
+                post.getContent(),
+                post.getUser().getName()
+        );
     }
 
-    public boolean deletePostById(int id) {
-        return postRepository.delete(id);
+    public PostResponse updatePost(Long postId, PostRequest request) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new BaseException(PostErrorCode.POST_NOT_FOUND));
+
+        post.update(request.getTitle(), request.getContent());
+        return PostResponse.success(post.getTitle(), post.getContent(), post.getId());
     }
 
-    //게시글 제목 수정을 위한 서비스 메서드 추가
-    public boolean updatePostTitle(int id, String newTitle) {
-        return postRepository.updateTitle(id, newTitle);
+    public void deletePost(Long postId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new BaseException(PostErrorCode.POST_NOT_FOUND));
+
+        postRepository.delete(post);
     }
 }
-
-
-// 제목 30자 제한 기능 최종 확인용 주석
