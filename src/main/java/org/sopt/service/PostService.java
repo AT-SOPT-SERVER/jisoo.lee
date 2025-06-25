@@ -7,8 +7,11 @@ import org.sopt.dto.PostResponse;
 import org.sopt.dto.PostResponseData;
 import org.sopt.Exception.BaseException;
 import org.sopt.Exception.PostErrorCode;
-import org.sopt.Repository.PostRepository;
-import org.sopt.Repository.UserRepository;
+import org.sopt.repository.PostRepository;
+import org.sopt.repository.UserRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -32,17 +35,25 @@ public class PostService {
         Post post = new Post(request.getTitle(), request.getContent(), user);
         postRepository.save(post);
 
-        return PostResponse.success(post.getTitle(), post.getContent(), post.getId());
+        return PostResponse.success(
+                post.getTitle(),
+                post.getContent(),
+                post.getId(),
+                post.getUser().getId());
     }
 
-    public List<PostResponseData> getAllPosts() {
-        return postRepository.findAllByOrderByIdDesc().stream()
+    public Page<PostResponseData> getAllPosts(int page) {
+        PageRequest pageable = PageRequest.of(page, 10);
+        return postRepository.findAllByOrderByIdDesc(pageable)
                 .map(post -> new PostResponseData(
                         post.getTitle(),
                         post.getContent(),
-                        post.getUser().getName()
-                ))
-                .collect(Collectors.toList());
+                        post.getUser().getName(),
+                        post.getComments().stream()
+                                .map(comment -> comment.getContent())
+                                .collect(Collectors.toList()),
+                        post.getLikeCount()
+                ));
     }
 
     public PostResponseData getPostById(Long postId) {
@@ -52,7 +63,11 @@ public class PostService {
         return new PostResponseData(
                 post.getTitle(),
                 post.getContent(),
-                post.getUser().getName()
+                post.getUser().getName(),
+                post.getComments().stream()
+                        .map(comment -> comment.getContent())
+                        .collect(Collectors.toList()),
+                post.getLikeCount()
         );
     }
 
@@ -61,7 +76,12 @@ public class PostService {
                 .orElseThrow(() -> new BaseException(PostErrorCode.POST_NOT_FOUND));
 
         post.update(request.getTitle(), request.getContent());
-        return PostResponse.success(post.getTitle(), post.getContent(), post.getId());
+        return PostResponse.success(
+                post.getTitle(),
+                post.getContent(),
+                post.getId(),
+                post.getUser().getId()
+        );
     }
 
     public void deletePost(Long postId) {
@@ -70,4 +90,13 @@ public class PostService {
 
         postRepository.delete(post);
     }
+
+    public void increaseLike(Long postId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found"));
+        post.increaseLike();
+        postRepository.save(post);
+    }
+
 }
+

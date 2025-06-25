@@ -5,6 +5,7 @@ import org.sopt.dto.PostRequest;
 import org.sopt.dto.PostResponse;
 import org.sopt.dto.PostResponseData;
 import org.sopt.service.PostService;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
@@ -19,7 +20,7 @@ public class PostController {
         this.postService = postService;
     }
 
-    // ✅ 게시글 생성 (응답 DTO는 서비스에서 생성)
+    // 게시글 생성
     @PostMapping
     public ResponseEntity<PostResponse> createPost(
             @RequestHeader Long userId,
@@ -29,21 +30,22 @@ public class PostController {
         return ResponseEntity.status(201).body(response);
     }
 
-    // ✅ 전체 조회
+    // 전체 조회
     @GetMapping
-    public ResponseEntity<List<PostResponseData>> getAllPosts() {
-        List<PostResponseData> responses = postService.getAllPosts();
+    public ResponseEntity<Page<PostResponseData>> getAllPosts(
+            @RequestParam(defaultValue = "0") int page
+    ) {
+        Page<PostResponseData> responses = postService.getAllPosts(page);
         return ResponseEntity.ok(responses);
     }
 
-    // ✅ 상세 조회
+    //게시글 상세 조회
     @GetMapping("/{postId}")
     public ResponseEntity<PostResponseData> getPostById(@PathVariable Long postId) {
         PostResponseData response = postService.getPostById(postId);
         return ResponseEntity.ok(response);
     }
-
-    // ✅ 수정
+    // 수정
     @PutMapping("/{postId}")
     public ResponseEntity<PostResponse> updatePost(
             @PathVariable Long postId,
@@ -53,10 +55,19 @@ public class PostController {
         return ResponseEntity.ok(response);
     }
 
-    // ✅ 삭제
+    // 삭제
     @DeleteMapping("/{postId}")
     public ResponseEntity<Void> deletePost(@PathVariable Long postId) {
         postService.deletePost(postId);
         return ResponseEntity.noContent().build();
     }
+
+    // 게시글 좋아요
+    @PostMapping("/{postId}/like")
+    public ResponseEntity<Void> likePost(@PathVariable Long postId) {
+        postService.increaseLike(postId);
+        return ResponseEntity.ok().build();
+    }
 }
+
+

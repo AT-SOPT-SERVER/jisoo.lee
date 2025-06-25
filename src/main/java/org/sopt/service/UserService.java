@@ -1,7 +1,7 @@
 package org.sopt.service;
 
 import org.sopt.domain.User;
-import org.sopt.Repository.UserRepository;
+import org.sopt.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
 @Service

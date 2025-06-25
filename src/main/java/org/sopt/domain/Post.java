@@ -2,6 +2,10 @@ package org.sopt.domain;
 
 import jakarta.persistence.*;
 
+import org.sopt.domain.Comment;
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 public class Post {
 
@@ -18,6 +22,11 @@ public class Post {
     @ManyToOne
     @JoinColumn(name = "user_id")
     private User user;
+
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Comment> comments = new ArrayList<>();
+
+    private int likeCount = 0;
 
     public Post() {}
 
@@ -43,8 +52,22 @@ public class Post {
         return user;
     }
 
+    public List<Comment> getComments() {
+        return comments;
+    }
+
     public void update(String title, String content) {
         this.title = title;
         this.content = content;
     }
+
+
+    public int getLikeCount() {
+        return likeCount;
+    }
+
+    public void increaseLike() {
+        this.likeCount++;
+    }
+
 }
