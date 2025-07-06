@@ -1,21 +1,18 @@
 package org.sopt.service;
 
+import jakarta.transaction.Transactional;
 import org.sopt.domain.Post;
 import org.sopt.domain.User;
-import org.sopt.dto.PostRequest;
-import org.sopt.dto.PostResponse;
-import org.sopt.dto.PostResponseData;
+import org.sopt.dto.response.PostDetailResponse;
+import org.sopt.dto.request.PostRequest;
+import org.sopt.dto.response.PostResponse;
 import org.sopt.Exception.BaseException;
-import org.sopt.Exception.PostErrorCode;
+import org.sopt.Exception.ErrorCode;
 import org.sopt.repository.PostRepository;
 import org.sopt.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class PostService {
@@ -28,75 +25,60 @@ public class PostService {
         this.userRepository = userRepository;
     }
 
-    public PostResponse createPost(Long userId, PostRequest request) {
+    //게시글 생성
+    public PostResponse<PostDetailResponse> createPost(Long userId, PostRequest request) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BaseException(PostErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new BaseException(ErrorCode.USER_NOT_FOUND));
 
         Post post = new Post(request.getTitle(), request.getContent(), user);
         postRepository.save(post);
 
-        return PostResponse.success(
-                post.getTitle(),
-                post.getContent(),
-                post.getId(),
-                post.getUser().getId());
+        return PostResponse.success(PostDetailResponse.from(post));
     }
 
-    public Page<PostResponseData> getAllPosts(int page) {
+    //게시글 전체 조회
+    public PostResponse<Page<PostDetailResponse>> getAllPosts(int page) {
         PageRequest pageable = PageRequest.of(page, 10);
-        return postRepository.findAllByOrderByIdDesc(pageable)
-                .map(post -> new PostResponseData(
-                        post.getTitle(),
-                        post.getContent(),
-                        post.getUser().getName(),
-                        post.getComments().stream()
-                                .map(comment -> comment.getContent())
-                                .collect(Collectors.toList()),
-                        post.getLikeCount()
-                ));
+        Page<PostDetailResponse> posts = postRepository.findAllByOrderByIdDesc(pageable)
+                .map(PostDetailResponse::from);
+
+        return PostResponse.success(posts);
     }
 
-    public PostResponseData getPostById(Long postId) {
+    //게시글 상세 조회
+    public PostResponse<PostDetailResponse> getPostById(Long postId) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new BaseException(PostErrorCode.POST_NOT_FOUND));
+                .orElseThrow(() -> new BaseException(ErrorCode.POST_NOT_FOUND));
 
-        return new PostResponseData(
-                post.getTitle(),
-                post.getContent(),
-                post.getUser().getName(),
-                post.getComments().stream()
-                        .map(comment -> comment.getContent())
-                        .collect(Collectors.toList()),
-                post.getLikeCount()
-        );
+        return PostResponse.success(PostDetailResponse.from(post));
     }
 
-    public PostResponse updatePost(Long postId, PostRequest request) {
+    //게시글 수정
+    @Transactional
+    public PostResponse<PostDetailResponse> updatePost(Long postId, PostRequest request) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new BaseException(PostErrorCode.POST_NOT_FOUND));
+                .orElseThrow(() -> new BaseException(ErrorCode.POST_NOT_FOUND));
 
         post.update(request.getTitle(), request.getContent());
-        return PostResponse.success(
-                post.getTitle(),
-                post.getContent(),
-                post.getId(),
-                post.getUser().getId()
-        );
+        return PostResponse.success(PostDetailResponse.from(post));
     }
 
-    public void deletePost(Long postId) {
+    //게시글 삭제
+    public PostResponse<Void> deletePost(Long postId) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new BaseException(PostErrorCode.POST_NOT_FOUND));
+                .orElseThrow(() -> new BaseException(ErrorCode.POST_NOT_FOUND));
 
         postRepository.delete(post);
+        return PostResponse.success(null);
     }
 
-    public void increaseLike(Long postId) {
+    //게시글 좋아요
+    public PostResponse<Void> increaseLike(Long postId) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new RuntimeException("Post not found"));
+                .orElseThrow(() -> new BaseException(ErrorCode.POST_NOT_FOUND));
+
         post.increaseLike();
         postRepository.save(post);
+        return PostResponse.success(null);
     }
-
 }
-

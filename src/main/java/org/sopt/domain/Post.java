@@ -1,11 +1,17 @@
 package org.sopt.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
-import org.sopt.domain.Comment;
 import java.util.ArrayList;
 import java.util.List;
 
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 public class Post {
 
@@ -19,41 +25,24 @@ public class Post {
     @Column(nullable = false)
     private String content;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id")
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
     private List<Comment> comments = new ArrayList<>();
 
+    @Column(nullable = false)
     private int likeCount = 0;
 
-    public Post() {}
-
+    @Builder
     public Post(String title, String content, User user) {
         this.title = title;
         this.content = content;
         this.user = user;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public String getContent() {
-        return content;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public List<Comment> getComments() {
-        return comments;
+        this.likeCount = 0;
     }
 
     public void update(String title, String content) {
@@ -61,13 +50,7 @@ public class Post {
         this.content = content;
     }
 
-
-    public int getLikeCount() {
-        return likeCount;
-    }
-
     public void increaseLike() {
         this.likeCount++;
     }
-
 }

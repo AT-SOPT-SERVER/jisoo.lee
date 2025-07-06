@@ -5,7 +5,6 @@ import lombok.RequiredArgsConstructor;
 import org.sopt.dto.request.CommentRequest;
 import org.sopt.dto.response.CommentResponse;
 import org.sopt.dto.response.PostResponse;
-import org.sopt.service.CommentService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
