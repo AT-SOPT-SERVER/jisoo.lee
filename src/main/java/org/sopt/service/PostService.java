@@ -25,7 +25,7 @@ public class PostService {
         this.userRepository = userRepository;
     }
 
-    //게시글 작성
+    //게시글 작성하기
     public PostResponse<PostDetailResponse> createPost(Long userId, PostRequest request) {
         User user = findUserById(userId);
 
