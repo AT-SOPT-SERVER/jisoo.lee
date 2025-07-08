@@ -1,6 +1,5 @@
 package org.sopt.service;
 
-import org.sopt.service.CommentService;
 import org.sopt.Exception.BaseException;
 import org.sopt.Exception.ErrorCode;
 import org.sopt.domain.Comment;
@@ -30,10 +29,8 @@ public class CommentService {
 
     //댓글 작성
     public CommentResponse create(Long postId, Long userId, String content) {
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new BaseException(ErrorCode.POST_NOT_FOUND));
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BaseException(ErrorCode.USER_NOT_FOUND));
+        Post post = findPostById(postId);
+        User user = findUserById(userId);
         Comment saved = commentRepository.save(new Comment(content, post, user));
         return CommentResponse.from(saved);
     }
@@ -46,16 +43,14 @@ public class CommentService {
     }
 
     //댓글 단건 조회
-    public CommentResponse getCommentById (Long commentId){
-        Comment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new BaseException(ErrorCode.COMMENT_NOT_FOUND));
+    public CommentResponse getCommentById(Long commentId){
+        Comment comment = findCommentById(commentId);
         return CommentResponse.from(comment);
     }
 
     //댓글 수정
-    public CommentResponse update (Long postId, Long commentId, Long userId, String content){
-        Comment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new BaseException(ErrorCode.COMMENT_NOT_FOUND));
+    public CommentResponse update(Long postId, Long commentId, Long userId, String content){
+        Comment comment = findCommentById(commentId);
 
         if (!comment.getUser().getId().equals(userId)) {
             throw new BaseException(ErrorCode.UNAUTHORIZED_COMMENT_MODIFICATION);
@@ -66,9 +61,8 @@ public class CommentService {
     }
 
     //댓글 삭제
-    public void delete (Long postId, Long commentId, Long userId){
-        Comment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new BaseException(ErrorCode.COMMENT_NOT_FOUND));
+    public void delete(Long postId, Long commentId, Long userId){
+        Comment comment = findCommentById(commentId);
 
         if (!comment.getUser().getId().equals(userId)) {
             throw new BaseException(ErrorCode.UNAUTHORIZED_COMMENT_DELETION);
@@ -77,9 +71,8 @@ public class CommentService {
     }
 
     //댓글 좋아요
-    public void likeComment (Long postId, Long commentId){
-        Comment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new BaseException(ErrorCode.COMMENT_NOT_FOUND));
+    public void likeComment(Long postId, Long commentId){
+        Comment comment = findCommentById(commentId);
 
         if (!comment.getPost().getId().equals(postId)) {
             throw new BaseException(ErrorCode.INVALID_COMMENT_POST_RELATION);
@@ -87,5 +80,20 @@ public class CommentService {
 
         comment.increaseLike();
         commentRepository.save(comment);
+    }
+
+    private Post findPostById(Long postId) {
+        return postRepository.findById(postId)
+                .orElseThrow(() -> new BaseException(ErrorCode.POST_NOT_FOUND));
+    }
+
+    private User findUserById(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new BaseException(ErrorCode.USER_NOT_FOUND));
+    }
+
+    private Comment findCommentById(Long commentId) {
+        return commentRepository.findById(commentId)
+                .orElseThrow(() -> new BaseException(ErrorCode.COMMENT_NOT_FOUND));
     }
 }

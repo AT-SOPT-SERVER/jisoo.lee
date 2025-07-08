@@ -27,8 +27,7 @@ public class PostService {
 
     //게시글 생성
     public PostResponse<PostDetailResponse> createPost(Long userId, PostRequest request) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BaseException(ErrorCode.USER_NOT_FOUND));
+        User user = findUserById(userId);
 
         Post post = new Post(request.getTitle(), request.getContent(), user);
         postRepository.save(post);
@@ -47,8 +46,7 @@ public class PostService {
 
     //게시글 상세 조회
     public PostResponse<PostDetailResponse> getPostById(Long postId) {
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new BaseException(ErrorCode.POST_NOT_FOUND));
+        Post post = findPostById(postId);
 
         return PostResponse.success(PostDetailResponse.from(post));
     }
@@ -56,8 +54,7 @@ public class PostService {
     //게시글 수정
     @Transactional
     public PostResponse<PostDetailResponse> updatePost(Long postId, PostRequest request) {
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new BaseException(ErrorCode.POST_NOT_FOUND));
+        Post post = findPostById(postId);
 
         post.update(request.getTitle(), request.getContent());
         return PostResponse.success(PostDetailResponse.from(post));
@@ -65,20 +62,28 @@ public class PostService {
 
     //게시글 삭제
     public PostResponse<Void> deletePost(Long postId) {
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new BaseException(ErrorCode.POST_NOT_FOUND));
+        Post post = findPostById(postId);
 
         postRepository.delete(post);
         return PostResponse.success(null);
     }
 
     //게시글 좋아요
+    @Transactional
     public PostResponse<Void> increaseLike(Long postId) {
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new BaseException(ErrorCode.POST_NOT_FOUND));
+        Post post = findPostById(postId);
 
         post.increaseLike();
-        postRepository.save(post);
         return PostResponse.success(null);
+    }
+
+    private Post findPostById(Long postId) {
+        return postRepository.findById(postId)
+                .orElseThrow(() -> new BaseException(ErrorCode.POST_NOT_FOUND));
+    }
+
+    private User findUserById(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new BaseException(ErrorCode.USER_NOT_FOUND));
     }
 }
