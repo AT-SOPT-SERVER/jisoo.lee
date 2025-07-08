@@ -1,42 +1,69 @@
 package org.sopt.controller;
 
-import org.sopt.dto.PostRequest;
+import jakarta.validation.Valid;
 import org.sopt.service.PostService;
+import lombok.RequiredArgsConstructor;
+import org.sopt.dto.response.PostResponse;
+import org.sopt.dto.request.PostRequest;
+import org.sopt.dto.response.PostDetailResponse;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.sopt.dto.PostResponse;
-import org.sopt.dto.PostResponseData;
 
+@RequiredArgsConstructor
 @RestController
-@RequestMapping("/post")
+@RequestMapping("/posts")
 public class PostController {
+
     private final PostService postService;
 
-    public PostController(PostService postService) {
-        this.postService = postService;
-    }
-
+    // 게시글 생성
     @PostMapping
-    public ResponseEntity<?> createPost(@RequestBody final PostRequest postRequest) {
-        PostResponseData result = postService.createPost(postRequest.title()); // result 받기
-        return ResponseEntity.ok(PostResponse.success(result)); // 실제 응답 전달
+    public ResponseEntity<PostResponse<PostDetailResponse>> createPost(
+            @RequestHeader Long userId,
+            @Valid @RequestBody PostRequest postRequest
+    ) {
+        PostResponse<PostDetailResponse> response = postService.createPost(userId, postRequest);
+        return ResponseEntity.status(201).body(response);
     }
 
-    @GetMapping("/all")
-    public ResponseEntity<?> getAllPosts() {
-        return ResponseEntity.ok(postService.getAllPosts());
+    // 게시글 전체 조회
+    @GetMapping
+    public ResponseEntity<PostResponse<Page<PostDetailResponse>>> getAllPosts(
+            @RequestParam(defaultValue = "0") int page
+    ) {
+        PostResponse<Page<PostDetailResponse>> response = postService.getAllPosts(page);
+        return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<?> getPostById(@PathVariable Long id) {
-        return ResponseEntity.ok(PostResponse.success(postService.getPostById(id)));
+    // 게시글 상세 조회
+    @GetMapping("/{postId}")
+    public ResponseEntity<PostResponse<PostDetailResponse>> getPostById(@PathVariable Long postId) {
+        PostResponse<PostDetailResponse> response = postService.getPostById(postId);
+        return ResponseEntity.ok(response);
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<?> updatePost(@PathVariable Long id, @RequestBody PostRequest request) {
-        PostResponseData result = postService.updatePostTitle(id, request.title());
-        return ResponseEntity.ok(PostResponse.success(result));
+    // 게시글 수정
+    @PutMapping("/{postId}")
+    public ResponseEntity<PostResponse<PostDetailResponse>> updatePost(
+            @PathVariable Long postId,
+            @Valid @RequestBody PostRequest request
+    ) {
+        PostResponse<PostDetailResponse> response = postService.updatePost(postId, request);
+        return ResponseEntity.ok(response);
     }
 
+    // 게시글 삭제
+    @DeleteMapping("/{postId}")
+    public ResponseEntity<PostResponse<Void>> deletePost(@PathVariable Long postId) {
+        PostResponse<Void> response = postService.deletePost(postId);
+        return ResponseEntity.ok(response);
+    }
 
+    // 게시글 좋아요
+    @PostMapping("/{postId}/like")
+    public ResponseEntity<PostResponse<Void>> likePost(@PathVariable Long postId) {
+        PostResponse<Void> response = postService.increaseLike(postId);
+        return ResponseEntity.ok(response);
+    }
 }

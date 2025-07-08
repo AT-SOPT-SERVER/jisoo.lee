@@ -1,61 +1,89 @@
 package org.sopt.service;
 
-import org.springframework.stereotype.Service;
+import jakarta.transaction.Transactional;
 import org.sopt.domain.Post;
-import org.sopt.dto.PostResponseData;
-import org.sopt.exception.PostException;
-import org.sopt.Repository.PostRepository;
-
-import java.util.List;
+import org.sopt.domain.User;
+import org.sopt.dto.response.PostDetailResponse;
+import org.sopt.dto.request.PostRequest;
+import org.sopt.dto.response.PostResponse;
+import org.sopt.Exception.BaseException;
+import org.sopt.Exception.ErrorCode;
+import org.sopt.repository.PostRepository;
+import org.sopt.repository.UserRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.stereotype.Service;
 
 @Service
 public class PostService {
 
     private final PostRepository postRepository;
+    private final UserRepository userRepository;
 
-    public PostService(PostRepository postRepository) {
+    public PostService(PostRepository postRepository, UserRepository userRepository) {
         this.postRepository = postRepository;
+        this.userRepository = userRepository;
     }
 
-    // 🔹 게시글 생성
-    public PostResponseData createPost(String title) {
-        if (title == null || title.trim().isEmpty()) {
-            throw new PostException("POST_001", "제목은 비어 있을 수 없습니다.");
-        }
+    //게시글 작성하기
+    public PostResponse<PostDetailResponse> createPost(Long userId, PostRequest request) {
+        User user = findUserById(userId);
 
-        if (title.length() > 30) {
-            throw new PostException("POST_002", "제목은 30자 이하여야 합니다.");
-        }
+        Post post = new Post(request.getTitle(), request.getContent(), user);
+        postRepository.save(post);
 
-        Post post = new Post(title);
-        Post savedPost = postRepository.save(post);
-
-        return new PostResponseData(savedPost.getId(), savedPost.getTitle());
+        return PostResponse.success(PostDetailResponse.from(post));
     }
 
-    // 🔹 전체 게시글 조회
-    public List<Post> getAllPosts() {
-        return postRepository.findAll();
+    //게시글 전체 조회
+    public PostResponse<Page<PostDetailResponse>> getAllPosts(int page) {
+        PageRequest pageable = PageRequest.of(page, 10);
+        Page<PostDetailResponse> posts = postRepository.findAllByOrderByIdDesc(pageable)
+                .map(PostDetailResponse::from);
+
+        return PostResponse.success(posts);
     }
 
-    // 🔹 특정 게시글 상세 조회
-    public Post getPostById(Long id) {
-        return postRepository.findById(id)
-                .orElseThrow(() -> new PostException("POST_003", "해당 ID의 게시글이 없습니다."));
+    //게시글 상세 조회
+    public PostResponse<PostDetailResponse> getPostById(Long postId) {
+        Post post = findPostById(postId);
+
+        return PostResponse.success(PostDetailResponse.from(post));
     }
 
-    // 🔹 게시글 수정 (제목 변경)
-    public PostResponseData updatePostTitle(Long id, String newTitle) {
-        Post post = postRepository.findById(id)
-                .orElseThrow(() -> new PostException("POST_004", "해당 게시글이 존재하지 않습니다."));
+    //게시글 수정
+    @Transactional
+    public PostResponse<PostDetailResponse> updatePost(Long postId, PostRequest request) {
+        Post post = findPostById(postId);
 
-        if (newTitle == null || newTitle.trim().isEmpty()) {
-            throw new PostException("POST_005", "수정할 제목은 비어 있을 수 없습니다.");
-        }
+        post.update(request.getTitle(), request.getContent());
+        return PostResponse.success(PostDetailResponse.from(post));
+    }
 
-        post.updateTitle(newTitle); // 이 메서드는 Post.java에 반드시 있어야 함
-        Post updated = postRepository.save(post);
+    //게시글 삭제
+    public PostResponse<Void> deletePost(Long postId) {
+        Post post = findPostById(postId);
 
-        return new PostResponseData(updated.getId(), updated.getTitle());
+        postRepository.delete(post);
+        return PostResponse.success(null);
+    }
+
+    //게시글 좋아요
+    @Transactional
+    public PostResponse<Void> increaseLike(Long postId) {
+        Post post = findPostById(postId);
+
+        post.increaseLike();
+        return PostResponse.success(null);
+    }
+
+    private Post findPostById(Long postId) {
+        return postRepository.findById(postId)
+                .orElseThrow(() -> new BaseException(ErrorCode.POST_NOT_FOUND));
+    }
+
+    private User findUserById(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new BaseException(ErrorCode.USER_NOT_FOUND));
     }
 }
